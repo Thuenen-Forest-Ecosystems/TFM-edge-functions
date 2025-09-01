@@ -82,7 +82,22 @@ Deno.serve(async (req) => {
     }
   )
 
-  const { data, error } = await supabase.storage.from('schema').download('schema.json');
+  let version = null;
+  // get List of Directories in supabase.storage.from('public').download(`validation`);
+  const { data: versions, error: versionError } = await supabase.storage.from('public').list(`validation`);
+  if (versionError) {
+    console.error('Error fetching validation versions:', versionError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch validation versions' }),
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    )
+  }
+  console.log('Available versions:', versions);
+  console.log('supabaseUrl:', Deno.env.get('SUPABASE_URL'));
+  // Find the latest version
+  version = versions[0]?.name || 'v27';
+
+  const { data, error } = await supabase.storage.from('public').download(`validation/${version}/validation.json`);
   if (error) {
     console.error('Error downloading schema:', error);
     return new Response(
@@ -91,10 +106,11 @@ Deno.serve(async (req) => {
     )
   }
 
-  // Fetch eval http://127.0.0.1:54321/storage/v1/object/validation/validation.js
-  const response = await fetch('https://ci.thuenen.de/storage/v1/object/validation/validation.js');
+  // http://kong:8000/storage/v1/object/public/validation/v27/validation.json
+  const response = await fetch(`https://ci.thuenen.de/storage/v1/object/public/validation/${version}/bundle.umd.js`);
   const script = await response.text();
   eval(script);
+
   const tfm = new TFM();
 
   const errors = [];

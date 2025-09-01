@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     if (!webhook_token) {
         return new Response(
-            JSON.stringify({ error: 'Unauthorized - missingtoken' }), 
+            JSON.stringify({ error: 'Unauthorized - missing token' }), 
             { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
     }else if (!githubSignature) {
