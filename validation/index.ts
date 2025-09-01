@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
 
   // Return errors
   return new Response(
-    JSON.stringify({ errors }),
+    JSON.stringify({ errors: errors, version: version, versions: versions }),
     { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
   )
 
