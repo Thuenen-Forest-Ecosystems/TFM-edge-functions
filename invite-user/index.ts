@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
     } else {
       // Generate the invitation link
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-        redirectTo: 'http://localhost:5173/TFM-Documentation/authentication/set-password',
-        //redirectTo: 'https://thuenen-forest-ecosystems.github.io/TFM-Documentation/authentication/set-password',
+        //redirectTo: 'http://localhost:5173/TFM-Documentation/authentication/set-password',
+        redirectTo: 'https://thuenen-forest-ecosystems.github.io/TFM-Documentation/authentication/set-password',
         data: {
           invited_by: userData.user.id,
           ...metaData
