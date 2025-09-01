@@ -170,15 +170,22 @@ Deno.serve(async (req) => {
       }*/
 
       const valid = validate(plot)
-      if (!valid) {
-        errors.push({ validation_errors: validate.errors });
-      }
+      /*if (!valid) {
+        errors.push({
+          validation_errors: validate.errors,
+          plot_id: plot.id
+        });
+      }*/
 
       const plausibilityErrors = await tfm.runPlots([plot], null, [previousPlot]);
       
       errors.push({
+        plot_id: plot.id,
+        version: version,
+        versions: versions,
         validation_errors: validate.errors,
         plausibility_errors: plausibilityErrors
+        
       });
     }
 
