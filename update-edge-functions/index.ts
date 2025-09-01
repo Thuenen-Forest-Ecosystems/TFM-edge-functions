@@ -28,9 +28,14 @@ Deno.serve(async (req) => {
     // GitHub webhook signature verification
     const githubSignature = req.headers.get('x-hub-signature-256');
 
-    if (!githubSignature || !webhook_token) {
+    if (!webhook_token) {
         return new Response(
-            JSON.stringify({ error: 'Unauthorized - missing signature or token' }), 
+            JSON.stringify({ error: 'Unauthorized - missingtoken' }), 
+            { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+    }else if (!githubSignature) {
+        return new Response(
+            JSON.stringify({ error: 'Unauthorized - missing GitHub signature' }),
             { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
     }
