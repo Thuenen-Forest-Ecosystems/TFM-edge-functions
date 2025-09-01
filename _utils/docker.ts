@@ -16,7 +16,7 @@ export async function pullLatestChanges() {
 
 export async function restartDockerContainer() {
     return new Promise((resolve, reject) => {
-        exec("docker restart edge-functions-container", (error, stdout, stderr) => {
+        exec("docker restart supabase-edge-functions", (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error restarting container: ${stderr}`);
                 reject(error);
