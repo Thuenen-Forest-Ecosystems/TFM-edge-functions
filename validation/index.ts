@@ -181,8 +181,6 @@ Deno.serve(async (req) => {
       
       errors.push({
         plot_id: plot.id,
-        version: version,
-        versions: versions,
         validation_errors: validate.errors,
         plausibility_errors: plausibilityErrors
         
@@ -192,7 +190,7 @@ Deno.serve(async (req) => {
   }catch (error) {
     console.error('Error compiling schema:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to compile schema' }),
+      JSON.stringify({ error: 'Failed to compile schema', detail: error.message }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     )
   }
