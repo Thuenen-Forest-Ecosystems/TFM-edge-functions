@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
         redirectTo: 'https://thuenen-forest-ecosystems.github.io/TFM-Documentation/authentication/set-password',
         data: {
           invited_by: userData.user.id,
+          name: metaData.name || null,
           ...metaData
         }
       });
