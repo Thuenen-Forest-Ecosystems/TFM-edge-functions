@@ -9,7 +9,6 @@ interface ValidationRequest {
   properties: Record<string, any>;
   previous_properties?: Record<string, any>; // Make optional with default
   validation_version: string;
-  record_id: string;
 }
 
 interface ValidationError {
@@ -49,9 +48,9 @@ Deno.serve(async (req: Request) => {
     const body = await req.json()
   
     // Validate required fields
-    if (!body.properties || !body.record_id || !body.validation_version) {
+    if (!body.properties || !body.validation_version) {
       return new Response(JSON.stringify({ 
-        error: 'Missing required fields: properties, record_id, validation_version',
+        error: 'Missing required fields: properties, validation_version',
         validation_errors: { error: 'Invalid request' },
         plausibility_errors: { error: 'Invalid request' }
       }), {
@@ -60,9 +59,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { properties, previous_properties, validation_version, record_id }: ValidationRequest = await req.json()
-
-    console.log(`Validating record ${record_id} with validation_version ${validation_version}`)
+    const { properties, previous_properties, validation_version }: ValidationRequest = await req.json()
 
     // Your validation logic here
     const validation_errors = await performValidation(properties, previous_properties)
