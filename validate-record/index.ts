@@ -82,8 +82,8 @@ Deno.serve(async (req: Request) => {
 
     
 
-    const validation_errors = [];
-    const plausibility_errors = [];
+    let validation_errors = [];
+    let plausibility_errors = [];
 
     try{
       const { data: schemaData, error: schemaError } = await supabase.storage.from('public').download(`validation/${validation_version}/validation.json`);
@@ -113,7 +113,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    if(validation_errors.length === 0){
+    //if(validation_errors.length === 0){
       try{
         // Plausibility check
         const { data: plausibilityData, error: plausibilityError } = await supabase.storage.from('public').download(`validation/${validation_version}/plausibility.umd.js`);
@@ -127,6 +127,11 @@ Deno.serve(async (req: Request) => {
         //const response = await fetch(`https://ci.thuenen.de/storage/v1/object/public/validation/${validation_version}/plausibility.umd.js`);
         //const script = await response.text();
         eval(plausibilityData);
+
+        const tfm = new TFM();
+
+        plausibility_errors = await tfm.runPlots([properties], null, [previous_properties]);
+
       } catch (error) {
         console.error('Error checking plausibility:', error);
         return new Response(
@@ -134,7 +139,7 @@ Deno.serve(async (req: Request) => {
           { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         )
       }
-    }
+    //}
 
     /* Your validation logic here
     const validation_errors = await performValidation(properties, previous_properties)
@@ -165,44 +170,3 @@ Deno.serve(async (req: Request) => {
     })
   }
 })
-
-async function performValidation(properties: any, previous_properties: any) {
-  // Implement your validation logic here
-  const errors = []
-  
-  // Example validation rules
-  if (!properties.measurement_date) {
-    errors.push({ field: 'measurement_date', message: 'Measurement date is required' })
-  }
-  
-  if (properties.dbh && properties.dbh < 0) {
-    errors.push({ field: 'dbh', message: 'DBH cannot be negative' })
-  }
-
-  return {
-    error_count: errors.length,
-    errors: errors
-  }
-}
-
-async function performPlausibilityCheck(properties: any, previous_properties: any) {
-  // Implement your plausibility logic here
-  const warnings = []
-  
-  // Example plausibility checks
-  if (previous_properties.dbh && properties.dbh) {
-    const growth = properties.dbh - previous_properties.dbh
-    if (growth > 10) { // More than 10cm growth seems implausible
-      warnings.push({ 
-        field: 'dbh', 
-        message: `Large DBH increase detected: ${growth}cm`,
-        severity: 'warning'
-      })
-    }
-  }
-
-  return {
-    warning_count: warnings.length,
-    warnings: warnings
-  }
-}
