@@ -116,7 +116,7 @@ Deno.serve(async (req: Request) => {
     //if(validation_errors.length === 0){
       try{
         // Plausibility check
-        const { data: plausibilityData, error: plausibilityError } = await supabase.storage.from('public').download(`validation/${validation_version}/plausibility.umd.js`);
+        const { data: plausibilityData, error: plausibilityError } = await supabase.storage.from('public').download(`validation/${validation_version}/bundle.umd.js`);
         if (plausibilityError) {
           console.error('Error downloading plausibility script:', plausibilityError);
           return new Response(
