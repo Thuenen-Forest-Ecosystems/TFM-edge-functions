@@ -79,9 +79,11 @@ Deno.serve(async (req) => {
     const existingUser = existingUsers.users.find(user => user.email === email)
 
     if (existingUser) {
+      
       // User already exists, no need to invite
       console.log('User already exists:', existingUser);
       newUserID = existingUser.id;
+
     } else {
       // Generate the invitation link
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
