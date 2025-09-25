@@ -76,6 +76,8 @@ Deno.serve(async (req) => {
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
+
+    // Find if the user already exists
     const existingUser = existingUsers.users.find(user => user.email === email)
 
     if (existingUser) {
