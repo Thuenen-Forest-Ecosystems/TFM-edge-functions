@@ -4,8 +4,31 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders } from '../_utils/cors.ts'
 
+import Ajv from 'npm:ajv';
+const ajv = new Ajv({
+  allErrors: true,
+  strict: false, // Disable strict mode to allow additional properties
+  removeAdditional: true // Remove additional properties not defined in the schema
+});
+
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+
+// Create a client with the user's JWT
+  const supabase = createClient(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
 
 interface ValidationRequest {
   properties: Record<string, any>;
@@ -57,14 +80,53 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Your validation logic here
+    const { data: schemaData, error: schemaError } = await supabase.storage.from('public').download(`validation/${validation_version}/validation.json`);
+    if (schemaError) {
+      console.error('Error downloading schema:', schemaError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to download schema' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    try{
+      const schema = await schemaData.text();
+      const jsonSchema = JSON.parse(schema);
+      ajv.compile(jsonSchema);
+
+      const validate = ajv.compile(jsonSchema.properties.plot.items);
+      const valid = validate(properties);
+      if (!valid) {
+        return new Response(
+          JSON.stringify({ error: 'Validation failed', details: validate.errors }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        )
+      }
+
+    } catch (error) {
+      console.error('Error compiling schema:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to compile schema' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    const response = await fetch(`https://ci.thuenen.de/storage/v1/object/public/validation/${validation_version}/bundle.umd.js`);
+    const script = await response.text();
+    eval(script);
+
+    const tfm = new TFM();
+
+
+
+    /* Your validation logic here
     const validation_errors = await performValidation(properties, previous_properties)
     const plausibility_errors = await performPlausibilityCheck(properties, previous_properties)
 
     const response: ValidationResponse = {
       validation_errors,
       plausibility_errors
-    }
+    }*/
 
     return new Response(JSON.stringify(response), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
