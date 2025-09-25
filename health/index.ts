@@ -10,6 +10,7 @@ Deno.serve(async (req) => {
     JSON.stringify({
       status: 'ok',
       timestamp: new Date().toISOString(),
+      message: 'Hello from Functions!'
     }),
     { headers: { "Content-Type": "application/json" } },
   )
