@@ -120,7 +120,7 @@ Deno.serve(async (req: Request) => {
         if (plausibilityError) {
           console.error('Error downloading plausibility script:', plausibilityError);
           return new Response(
-            JSON.stringify({ error: 'Failed to download plausibility script' }),
+            JSON.stringify({ error: `Failed to download validation/${validation_version}/bundle.umd.js` }),
             { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
           )
         }
