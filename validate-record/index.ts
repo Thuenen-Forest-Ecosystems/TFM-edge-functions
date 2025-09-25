@@ -4,6 +4,8 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { corsHeaders } from '../_utils/cors.ts'
+
 
 interface ValidationRequest {
   properties: Record<string, any>;
@@ -39,27 +41,21 @@ Deno.serve(async (req: Request) => {
   // Add method check
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
       status: 405,
     })
   }
 
   try {
-    const body = await req.json()
-  
-    // Validate required fields
-    if (!body.properties || !body.validation_version) {
-      return new Response(JSON.stringify({ 
-        error: 'Missing required fields: properties, validation_version',
-        validation_errors: { error: 'Invalid request' },
-        plausibility_errors: { error: 'Invalid request' }
-      }), {
-        headers: { 'Content-Type': 'application/json' },
+
+    const { properties, previous_properties, validation_version }: ValidationRequest = await req.json()
+
+    if (!properties || !validation_version) {
+      return new Response(JSON.stringify({ error: 'Invalid request payload' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 400,
       })
     }
-
-    const { properties, previous_properties, validation_version }: ValidationRequest = await req.json()
 
     // Your validation logic here
     const validation_errors = await performValidation(properties, previous_properties)
@@ -71,7 +67,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(JSON.stringify(response), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
       status: 200,
     })
 
@@ -82,7 +78,7 @@ Deno.serve(async (req: Request) => {
       validation_errors: { error: 'Validation failed' },
       plausibility_errors: { error: 'Plausibility check failed' }
     }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
       status: 500,
     })
   }
