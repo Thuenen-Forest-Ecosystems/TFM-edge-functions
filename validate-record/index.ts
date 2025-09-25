@@ -80,16 +80,21 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: schemaData, error: schemaError } = await supabase.storage.from('public').download(`validation/${validation_version}/validation.json`);
-    if (schemaError) {
-      console.error('Error downloading schema:', schemaError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to download schema' }),
-        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
-    }
+    
+
+    const validation_errors = [];
+    const plausibility_errors = [];
 
     try{
+      const { data: schemaData, error: schemaError } = await supabase.storage.from('public').download(`validation/${validation_version}/validation.json`);
+      if (schemaError) {
+        console.error('Error downloading schema:', schemaError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to download schema' }),
+          { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        )
+      }
+      // Validation
       const schema = await schemaData.text();
       const jsonSchema = JSON.parse(schema);
       ajv.compile(jsonSchema);
@@ -97,10 +102,7 @@ Deno.serve(async (req: Request) => {
       const validate = ajv.compile(jsonSchema.properties.plot.items);
       const valid = validate(properties);
       if (!valid) {
-        return new Response(
-          JSON.stringify({ error: 'Validation failed', details: validate.errors }),
-          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-        )
+        validation_errors.push(...(validate.errors || []));
       }
 
     } catch (error) {
@@ -111,13 +113,28 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const response = await fetch(`https://ci.thuenen.de/storage/v1/object/public/validation/${validation_version}/bundle.umd.js`);
-    const script = await response.text();
-    eval(script);
-
-    const tfm = new TFM();
-
-
+    if(validation_errors.length === 0){
+      try{
+        // Plausibility check
+        const { data: plausibilityData, error: plausibilityError } = await supabase.storage.from('public').download(`validation/${validation_version}/plausibility.umd.js`);
+        if (plausibilityError) {
+          console.error('Error downloading plausibility script:', plausibilityError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to download plausibility script' }),
+            { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          )
+        }
+        //const response = await fetch(`https://ci.thuenen.de/storage/v1/object/public/validation/${validation_version}/plausibility.umd.js`);
+        //const script = await response.text();
+        eval(plausibilityData);
+      } catch (error) {
+        console.error('Error checking plausibility:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to check plausibility' }),
+          { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        )
+      }
+    }
 
     /* Your validation logic here
     const validation_errors = await performValidation(properties, previous_properties)
@@ -128,7 +145,10 @@ Deno.serve(async (req: Request) => {
       plausibility_errors
     }*/
 
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify({
+      validation_errors: validation_errors,
+      plausibility_errors: plausibility_errors
+    }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
       status: 200,
     })
