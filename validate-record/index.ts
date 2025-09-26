@@ -132,10 +132,10 @@ Deno.serve(async (req: Request) => {
 
         plausibility_errors = await tfm.runPlots([properties], null, [previous_properties]);
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error checking plausibility:', error);
         return new Response(
-          JSON.stringify({ error: 'Failed to check plausibility' }),
+          JSON.stringify({ error: 'Failed to check plausibility', details: error.message }),
           { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         )
       }
