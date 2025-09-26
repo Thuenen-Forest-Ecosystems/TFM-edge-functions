@@ -69,6 +69,26 @@ Deno.serve(async (req: Request) => {
     })
   }
 
+  // Get authorization header and verify authentication
+  const authHeader = req.headers.get('Authorization')!
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Missing authorization header' }),
+      { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders} }
+    )
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  const { data:userData, error:userError } = await supabase.auth.getUser(token)
+
+  if (userError || !userData.user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    )
+  }
+  
+
   try {
 
     const { properties, previous_properties, validation_version }: ValidationRequest = await req.json()
