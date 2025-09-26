@@ -117,8 +117,8 @@ Deno.serve(async (req: Request) => {
       try{
         // Plausibility check
         const { data: plausibilityData, error: plausibilityError } = await supabase.storage.from('public').download(`validation/${validation_version}/bundle.umd.js`);
+        
         if (plausibilityError) {
-          console.error('Error downloading plausibility script:', plausibilityError);
           return new Response(
             JSON.stringify({ error: `Failed to download: validation/${validation_version}/bundle.umd.js` }),
             { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -126,7 +126,8 @@ Deno.serve(async (req: Request) => {
         }
         //const response = await fetch(`https://ci.thuenen.de/storage/v1/object/public/validation/${validation_version}/plausibility.umd.js`);
         //const script = await response.text();
-        eval(plausibilityData);
+        const plausibilityText = await plausibilityData.text();
+        eval(plausibilityText);
 
         const tfm = new TFM();
 
