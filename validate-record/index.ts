@@ -126,7 +126,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    //if(validation_errors.length === 0){
+    if(validation_errors.length === 0){
       try{
         // Plausibility check
         const { data: plausibilityData, error: plausibilityError } = await supabase.storage.from('public').download(`validation/${validation_version}/bundle.umd.js`);
@@ -148,9 +148,12 @@ Deno.serve(async (req: Request) => {
 
       } catch (error: any) {
         console.error('Error checking plausibility:', error);
-        plausibility_errors = [];
+        return new Response(
+          JSON.stringify({ error: 'Failed to check plausibility: ' + error.message }),
+          { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        )
       }
-    //}
+    }
 
     /* Your validation logic here
     const validation_errors = await performValidation(properties, previous_properties)
