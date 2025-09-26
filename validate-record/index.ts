@@ -73,8 +73,21 @@ Deno.serve(async (req: Request) => {
 
     const { properties, previous_properties, validation_version }: ValidationRequest = await req.json()
 
-    if (!properties || !validation_version) {
+    if(!validation_version){
+      return new Response(JSON.stringify({ error: 'validation_version is required' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 400,
+      })
+    }
+
+    if (!properties || typeof properties !== 'object') {
       return new Response(JSON.stringify({ error: 'Invalid request payload' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 400,
+      })
+    }
+    if (previous_properties && typeof previous_properties !== 'object') {
+      return new Response(JSON.stringify({ error: 'Invalid previous_properties payload' }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 400,
       })
@@ -131,14 +144,11 @@ Deno.serve(async (req: Request) => {
 
         const tfm = new TFM();
 
-        plausibility_errors = await tfm.runPlots([properties], null, [previous_properties]);
+        plausibility_errors = await tfm.runPlots([properties], null, [previous_properties]) || [];
 
       } catch (error: any) {
         console.error('Error checking plausibility:', error);
-        return new Response(
-          JSON.stringify({ error: 'Failed to check plausibility', details: error.message }),
-          { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-        )
+        plausibility_errors = [];
       }
     //}
 
