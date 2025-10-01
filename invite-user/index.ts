@@ -104,7 +104,19 @@ Deno.serve(async (req) => {
         )
       }
       newUserID = data.user.id;
+
+      const { data: userCheck, error: userCheckError } = await supabase.auth.admin.getUserById(newUserID);
+
+      if (userCheckError || !userCheck) {
+        console.error('User does not exist:', userCheckError);
+        return new Response(
+          JSON.stringify({ error: 'User does not exist in the system' }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
     }
+
+    
 
     // Add public.users_permissions
     if (newUserID && metaData.organization_id) {
