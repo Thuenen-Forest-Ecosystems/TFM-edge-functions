@@ -67,29 +67,26 @@ Deno.serve(async (req) => {
 
     let newUserID = null;
 
-    // check if user already exists (to avoid multiple invitations)
-    const { data: existingUsers, error: existingUserError } = await supabase.auth.admin.listUsers()
+    // Check if user already exists (to avoid multiple invitations)
+    const { data: existingUsers, error: existingUserError } = await supabase.auth.admin.listUsers();
     if (existingUserError) {
       console.error('Error listing existing users:', existingUserError);
       return new Response(
         JSON.stringify({ error: 'Failed to check existing users', details: existingUserError.message }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
+      );
     }
 
     // Find if the user already exists
-    const existingUser = existingUsers.users.find(user => user.email === email)
+    const existingUser = existingUsers.users.find(user => user.email === email);
 
     if (existingUser) {
-
       // User already exists, no need to invite
       console.log('User already exists:', existingUser);
       newUserID = existingUser.id;
-
     } else {
       // Generate the invitation link
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-        //redirectTo: 'http://localhost:5173/TFM-Documentation/authentication/set-password',
         redirectTo: 'https://thuenen-forest-ecosystems.github.io/TFM-Documentation/authentication/set-password',
         data: {
           invited_by: userData.user.id,
@@ -101,12 +98,12 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Failed to send invitation', details: error.message }),
           { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-        )
+        );
       }
       newUserID = data.user.id;
 
+      // Verify the user was created
       const { data: userCheck, error: userCheckError } = await supabase.auth.admin.getUserById(newUserID);
-
       if (userCheckError || !userCheck) {
         console.error('User does not exist:', userCheckError);
         return new Response(
@@ -114,11 +111,28 @@ Deno.serve(async (req) => {
           { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
       }
+
+      // NEW: Insert into users_profile for the new user (before permissions)
+      const { error: profileError } = await supabase
+        .from('users_profile')
+        .insert({
+          id: newUserID,
+          email: email,
+          organization_id: metaData.organization_id,
+          name: metaData.name,
+          is_organization_admin: metaData.is_organization_admin || false
+        });
+
+      if (profileError) {
+        console.error('Error inserting into users_profile:', profileError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create user profile', details: profileError.message }),
+          { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
     }
 
-    
-
-    // Add public.users_permissions
+    // Add public.users_permissions (now safe, as users_profile exists)
     if (newUserID && metaData.organization_id) {
       try {
         const { data: permissionData, error: permissionError } = await supabase
@@ -129,7 +143,7 @@ Deno.serve(async (req) => {
             created_by: userData.user.id,
             is_organization_admin: metaData.is_organization_admin || false
           })
-          .select(); // Add .select() to get the inserted data
+          .select();
 
         if (permissionError) {
           console.error('Error inserting into users_permissions:', permissionError, {
@@ -139,17 +153,17 @@ Deno.serve(async (req) => {
           return new Response(
             JSON.stringify({ error: 'Failed to insert into users_permissions', details: permissionError.message }),
             { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-          )
+          );
         }
       } catch (e) {
         console.error('Unexpected error during insertion:', e);
         return new Response(
           JSON.stringify({ error: 'Unexpected error during insertion', details: e.message }),
           { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-        )
+        );
       }
     } else {
-      console.warn('No organization_id provided, skipping users_permissions insertion')
+      console.warn('No organization_id provided, skipping users_permissions insertion');
     }
 
 
