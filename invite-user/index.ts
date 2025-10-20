@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
           id: newUserID,
           email: email,
           organization_id: metaData.organization_id,
-          name: metaData.name,
+          user_name: metaData.name,
           is_organization_admin: metaData.is_organization_admin || false
         });
 
