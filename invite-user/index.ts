@@ -69,29 +69,34 @@ Deno.serve(async (req) => {
 
     // Check if user already exists (to avoid multiple invitations)
     console.log('Checking if user exists:', email);
-    const { data: existingUser, error: existingUserError } = await supabase.auth.admin.getUserByEmail(email);
     
-    if (existingUserError && existingUserError.message !== 'User not found') {
+    // Query the users_profile table to check if user exists
+    const { data: existingProfile, error: profileCheckError } = await supabase
+      .schema('auth')
+      .from('email')
+      .select('id, email')
+      .eq('email', email)
+      .maybeSingle();
+    
+    if (profileCheckError) {
       console.error('Error checking existing user:', {
-        error: existingUserError,
-        message: existingUserError.message,
-        status: existingUserError.status,
+        error: profileCheckError,
+        message: profileCheckError.message,
         email: email
       });
       return new Response(
-        JSON.stringify({ error: 'Failed to check existing user', details: existingUserError.message }),
+        JSON.stringify({ error: 'Failed to check existing user', details: profileCheckError.message }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    if (existingUser) {
+    if (existingProfile) {
       // User already exists, no need to invite
       console.log('User already exists:', {
-        id: existingUser.id,
-        email: existingUser.email,
-        created_at: existingUser.created_at
+        id: existingProfile.id,
+        email: existingProfile.email
       });
-      newUserID = existingUser.id;
+      newUserID = existingProfile.id;
     } else {
       // Generate the invitation link
       console.log('Inviting new user:', {
