@@ -68,42 +68,24 @@ Deno.serve(async (req) => {
     let newUserID = null;
 
     // Check if user already exists (to avoid multiple invitations)
-    console.log('Checking if user exists:', email);
-    
-    // Query the users_profile table to check if user exists
-    const { data: existingProfile, error: profileCheckError } = await supabase
-      .from('users_profile')
-      .select('id, email')
-      .eq('email', email)
-      .maybeSingle();
-    
-    if (profileCheckError) {
-      console.error('Error checking existing user:', {
-        error: profileCheckError,
-        message: profileCheckError.message,
-        email: email
-      });
+    const { data: existingUsers, error: existingUserError } = await supabase.auth.admin.listUsers();
+    if (existingUserError) {
+      console.error('Error listing existing users:', existingUserError);
       return new Response(
-        JSON.stringify({ error: 'Failed to check existing user', details: profileCheckError.message }),
+        JSON.stringify({ error: 'Failed to check existing users', details: existingUserError.message }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    if (existingProfile) {
+    // Find if the user already exists
+    const existingUser = existingUsers.users.find(user => user.email === email);
+
+    if (existingUser) {
       // User already exists, no need to invite
-      console.log('User already exists:', {
-        id: existingProfile.id,
-        email: existingProfile.email
-      });
-      newUserID = existingProfile.id;
+      console.log('User already exists:', existingUser);
+      newUserID = existingUser.id;
     } else {
       // Generate the invitation link
-      console.log('Inviting new user:', {
-        email: email,
-        redirectTo: 'https://thuenen-forest-ecosystems.github.io/TFM-Documentation/authentication/set-password',
-        metaData: metaData
-      });
-      
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
         redirectTo: 'https://thuenen-forest-ecosystems.github.io/TFM-Documentation/authentication/set-password',
         data: {
@@ -112,31 +94,12 @@ Deno.serve(async (req) => {
           ...metaData
         }
       });
-      
       if (error) {
-        console.error('Failed to send invitation:', {
-          error: error,
-          message: error.message,
-          status: error.status,
-          name: error.name,
-          email: email,
-          metaData: metaData
-        });
         return new Response(
-          JSON.stringify({ 
-            error: 'Failed to send invitation', 
-            details: error.message,
-            errorName: error.name,
-            errorStatus: error.status
-          }),
+          JSON.stringify({ error: 'Failed to send invitation', details: error.message }),
           { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
       }
-      
-      console.log('Invitation sent successfully:', {
-        userId: data.user.id,
-        email: data.user.email
-      });
       newUserID = data.user.id;
 
       // Verify the user was created
