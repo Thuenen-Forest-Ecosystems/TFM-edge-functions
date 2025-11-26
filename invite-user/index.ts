@@ -72,8 +72,7 @@ Deno.serve(async (req) => {
     
     // Query the users_profile table to check if user exists
     const { data: existingProfile, error: profileCheckError } = await supabase
-      .schema('auth')
-      .from('email')
+      .from('users_profile')
       .select('id, email')
       .eq('email', email)
       .maybeSingle();
